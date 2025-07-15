@@ -117,8 +117,8 @@ void epd_base_init(uint32_t epd_row_width)
 
     gpio_set_level(EPD_OE, 0);
     gpio_set_level(EPD_MODE, 0);
-    gpio_set_level(EPD_PWR, 0);
-    gpio_set_level(EPD_STV, 1);
+    gpio_set_level(EPD_PWR, 0);//1
+    gpio_set_level(EPD_STV, 0);//1
     gpio_set_level(EPD_LE, 0);
 #else
     config_reg.ep_latch_enable = false;
@@ -214,8 +214,8 @@ void epd_poweroff_all()
     gpio_set_level(EPD_OE, 0);
     gpio_set_level(EPD_MODE, 0);
     gpio_set_level(EPD_LE, 0);
-    gpio_set_level(EPD_STV, 0);
     gpio_set_level(EPD_PWR, 0);
+    gpio_set_level(EPD_STV, 0);
 #else
     memset(&config_reg, 0, sizeof(config_reg));
     push_cfg(&config_reg);
