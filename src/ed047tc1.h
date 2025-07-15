@@ -43,10 +43,20 @@ extern "C" {
 
 #elif CONFIG_IDF_TARGET_ESP32S3
 
+#ifdef EPD_CTL_OVERRIDE
+
+#if !defined(EPD_LE) || !defined(EPD_STV) || !defined(EPD_OE) || !defined(EPD_MODE) || !defined(EPD_PWR) 
+#error "Please define EPD_LEH, EPD_STV, EPD_OE, EPD_MODE, EPD_PWR gpio when use defined EPD_CTL_OVERRIDE"
+#endif
+
+#else
+
 /* Config Reggister Control */
 #define CFG_DATA GPIO_NUM_13
 #define CFG_CLK GPIO_NUM_12
 #define CFG_STR GPIO_NUM_0
+
+#endif
 
 /* Control Lines */
 #define CKV GPIO_NUM_38

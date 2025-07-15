@@ -20,6 +20,7 @@
 /***        type definitions                                                ***/
 /******************************************************************************/
 
+#ifndef EPD_CTL_OVERRIDE
 typedef struct
 {
     bool ep_latch_enable : 1;
@@ -96,6 +97,7 @@ static void IRAM_ATTR push_cfg(epd_config_register_t *cfg)
     fast_gpio_set_hi(CFG_STR);
 }
 
+#endif
 
 void IRAM_ATTR busy_delay(uint32_t cycles)
 {
@@ -106,6 +108,19 @@ void IRAM_ATTR busy_delay(uint32_t cycles)
 
 void epd_base_init(uint32_t epd_row_width)
 {
+#ifdef EPD_CTL_OVERRIDE
+    gpio_set_direction(EPD_OE, GPIO_MODE_OUTPUT);
+    gpio_set_direction(EPD_MODE, GPIO_MODE_OUTPUT);
+    gpio_set_direction(EPD_PWR, GPIO_MODE_OUTPUT);
+    gpio_set_direction(EPD_STV, GPIO_MODE_OUTPUT);
+    gpio_set_direction(EPD_LE, GPIO_MODE_OUTPUT);
+
+    gpio_set_level(EPD_OE, 0);
+    gpio_set_level(EPD_MODE, 0);
+    gpio_set_level(EPD_PWR, 0);
+    gpio_set_level(EPD_STV, 1);
+    gpio_set_level(EPD_LE, 0);
+#else
     config_reg.ep_latch_enable = false;
     config_reg.power_disable = true;
     config_reg.pos_power_enable = false;
@@ -122,6 +137,7 @@ void epd_base_init(uint32_t epd_row_width)
     fast_gpio_set_lo(CFG_STR);
 
     push_cfg(&config_reg);
+#endif
 
     // Setup I2S
     i2s_bus_config i2s_config;
@@ -145,6 +161,15 @@ void epd_base_init(uint32_t epd_row_width)
 
 void epd_poweron()
 {
+    #ifdef EPD_CTL_OVERRIDE
+
+    gpio_set_level(EPD_PWR, 1);
+    busy_delay(100 * 240);
+    gpio_set_level(EPD_STV, 1);
+    gpio_set_level(STH, 1);
+
+    #else
+
     config_reg.ep_scan_direction = true;
     config_reg.power_disable = false;
     push_cfg(&config_reg);
@@ -158,10 +183,17 @@ void epd_poweron()
     config_reg.ep_stv = true;
     push_cfg(&config_reg);
     fast_gpio_set_hi(STH);
+
+    #endif
 }
 
 void epd_poweroff()
 {
+#ifdef EPD_CTL_OVERRIDE
+    gpio_set_level(EPD_PWR, 0);
+    busy_delay(100 * 240);
+    gpio_set_level(EPD_STV, 0);
+#else
     config_reg.pos_power_enable = false;
     push_cfg(&config_reg);
     busy_delay(10 * 240);
@@ -173,18 +205,38 @@ void epd_poweroff()
 
     config_reg.ep_stv = false;
     push_cfg(&config_reg);
+#endif
 }
 
 void epd_poweroff_all()
 {
+#ifdef EPD_CTL_OVERRIDE
+    gpio_set_level(EPD_OE, 0);
+    gpio_set_level(EPD_MODE, 0);
+    gpio_set_level(EPD_LE, 0);
+    gpio_set_level(EPD_STV, 0);
+    gpio_set_level(EPD_PWR, 0);
+#else
     memset(&config_reg, 0, sizeof(config_reg));
     push_cfg(&config_reg);
+#endif
 }
 
 void epd_start_frame()
 {
     while (i2s_is_busy()) ;
 
+#ifdef EPD_CTL_OVERRIDE
+    gpio_set_level(EPD_MODE, 1);
+
+    pulse_ckv_us(1, 1, true);
+    gpio_set_level(EPD_STV, 0);
+    busy_delay(240);
+    pulse_ckv_us(10, 10, false);
+    gpio_set_level(EPD_STV, 1);
+    pulse_ckv_us(0, 10, true);
+    gpio_set_level(EPD_OE, 1);
+#else
     config_reg.ep_mode = true;
     push_cfg(&config_reg);
 
@@ -201,17 +253,22 @@ void epd_start_frame()
 
     config_reg.ep_output_enable = true;
     push_cfg(&config_reg);
-
+#endif
     pulse_ckv_us(1, 1, true);
 }
 
 static inline void latch_row()
 {
+#ifdef EPD_CTL_OVERRIDE
+    gpio_set_level(EPD_LE, 1);
+    gpio_set_level(EPD_LE, 0);
+#else
     config_reg.ep_latch_enable = true;
     push_cfg(&config_reg);
 
     config_reg.ep_latch_enable = false;
     push_cfg(&config_reg);
+#endif
 }
 
 void  epd_skip()
@@ -238,10 +295,15 @@ void  epd_output_row(uint32_t output_time_dus)
 
 void epd_end_frame()
 {
+#ifdef EPD_CTL_OVERRIDE
+    gpio_set_level(EPD_OE, 0);
+    gpio_set_level(EPD_MODE, 0);
+#else
     config_reg.ep_output_enable = false;
     push_cfg(&config_reg);
     config_reg.ep_mode = false;
     push_cfg(&config_reg);
+#endif
     pulse_ckv_us(1, 1, true);
     pulse_ckv_us(1, 1, true);
 }
